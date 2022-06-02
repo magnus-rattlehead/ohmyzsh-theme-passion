@@ -1,4 +1,3 @@
-
 # gdate for macOS
 # REF: https://apple.stackexchange.com/questions/135742/time-in-milliseconds-since-epoch-in-the-terminal
 if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -16,7 +15,10 @@ fi
 
 # time
 function real_time() {
-    local color="%{$fg_no_bold[cyan]%}";                    # color in PROMPT need format in %{XXX%} which is not same with echo
+    local color="%{$fg_bold[cyan]%}";                    # color in PROMPT need format in %{XXX%} which is not same with echo
+    if [[ "$EUID" == 0 ]]; then
+      color="%{$fg_bold[red]%}";
+    fi
     local time="[$(date +%H:%M:%S)]";
     local color_reset="%{$reset_color%}";
     echo "${color}${time}${color_reset}";
@@ -25,6 +27,9 @@ function real_time() {
 # login_info
 function login_info() {
     local color="%{$fg_no_bold[cyan]%}";                    # color in PROMPT need format in %{XXX%} which is not same with echo
+    if [[ "$EUID" == 0 ]]; then
+      color="%{$fg_no_bold[red]%}";
+    fi
     local ip
     if [[ "$OSTYPE" == "linux-gnu" ]]; then
         # Linux
@@ -51,10 +56,17 @@ function login_info() {
 # directory
 function directory() {
     local color="%{$fg_no_bold[cyan]%}";
+    if [[ "$EUID" == 0 ]]; then
+      color="%{$fg_no_bold[red]%}";
+    fi
     # REF: https://stackoverflow.com/questions/25944006/bash-current-working-directory-with-replacing-path-to-home-folder
-    local directory="${PWD/#$HOME/~}";
+    # local directory="${/#HOME/~}";
+    local PRE= NAME="$1" LENGTH="$2";
+    [[ "$NAME" != "${NAME#$HOME/}" || -z "${NAME#$HOME}" ]] &&
+        PRE+='~' NAME="${NAME#$HOME}" LENGTH=$[LENGTH-1];
+    ((${#NAME}>$LENGTH)) && NAME="/...${NAME:$[${#NAME}-LENGTH+4]}";
     local color_reset="%{$reset_color%}";
-    echo "${color}[${directory}]${color_reset}";
+    echo "${color}[${PRE}${NAME}]${color_reset}";
 }
 
 
@@ -210,4 +222,4 @@ TRAPALRM() {
 
 # prompt
 # PROMPT='$(real_time) $(login_info) $(directory) $(git_status)$(command_status) ';
-PROMPT='$(real_time) $(directory) $(git_status)$(command_status) ';
+PROMPT='$(real_time) $(directory "$PWD" 25) $(git_status)$(command_status) ';
